@@ -1,6 +1,9 @@
 import os
 import shutil
 import re
+from dotenv import load_dotenv
+load_dotenv()
+DATASET_PATH = os.getenv('DATASET_PATH')
 
 def copy_images_by_interval(source_dirs, dest_dir, start, end, step):
     """
@@ -35,23 +38,22 @@ def copy_images_by_interval(source_dirs, dest_dir, start, end, step):
                     print(f"Copié: {src_path} -> {dest_path}")
 
 if __name__ == "__main__":
-    path = "path/dataset"
-    source_dirs = [f"{path}/part000",
-                   f"{path}/part001",
-                   f"{path}/part002",
-                   f"{path}/part003",
-                   f"{path}/part004",
-                   f"{path}/part006",
-                   f"{path}/part007",
-                   f"{path}/part008",
-                   f"{path}/part009",
-                   f"{path}/part010",
-                   f"{path}/part011",
-                   f"{path}/part012",
-                   f"{path}/part013",
-                   f"{path}/part014"]
+    source_dirs = [f"{DATASET_PATH}\\part000",
+                   f"{DATASET_PATH}\\part001",
+                   f"{DATASET_PATH}\\part002",
+                   f"{DATASET_PATH}\\part003",
+                   f"{DATASET_PATH}\\part004",
+                   f"{DATASET_PATH}\\part006",
+                   f"{DATASET_PATH}\\part007",
+                   f"{DATASET_PATH}\\part008",
+                   f"{DATASET_PATH}\\part009",
+                   f"{DATASET_PATH}\\part010",
+                   f"{DATASET_PATH}\\part011",
+                   f"{DATASET_PATH}\\part012",
+                   f"{DATASET_PATH}\\part013",
+                   f"{DATASET_PATH}\\part014"]
 
-    dest_dir = f"{path}/dataset/test3"  # Dossier de destination
+    dest_dir = f"{DATASET_PATH}\\compactedDataSet"  # Dossier de destination
 
     # Intervalle d'images à copier
     start = 1  # Premier numéro inclus
