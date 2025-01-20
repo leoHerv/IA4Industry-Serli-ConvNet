@@ -47,11 +47,11 @@ if __name__ == "__main__":
                    f"{path}/part009",
                    f"{path}/part010",
                    f"{path}/part011",
-                   f"{path}//part012",
+                   f"{path}/part012",
                    f"{path}/part013",
                    f"{path}/part014"]
 
-    dest_dir = "{path}/dataset/test3"  # Dossier de destination
+    dest_dir = f"{path}/dataset/test3"  # Dossier de destination
 
     # Intervalle d'images à copier
     start = 1  # Premier numéro inclus
