@@ -38,22 +38,22 @@ def copy_images_by_interval(source_dirs, dest_dir, start, end, step):
                     print(f"Copié: {src_path} -> {dest_path}")
 
 if __name__ == "__main__":
-    source_dirs = [f"{DATASET_PATH}\\part000",
-                   f"{DATASET_PATH}\\part001",
-                   f"{DATASET_PATH}\\part002",
-                   f"{DATASET_PATH}\\part003",
-                   f"{DATASET_PATH}\\part004",
-                   f"{DATASET_PATH}\\part006",
-                   f"{DATASET_PATH}\\part007",
-                   f"{DATASET_PATH}\\part008",
-                   f"{DATASET_PATH}\\part009",
-                   f"{DATASET_PATH}\\part010",
-                   f"{DATASET_PATH}\\part011",
-                   f"{DATASET_PATH}\\part012",
-                   f"{DATASET_PATH}\\part013",
-                   f"{DATASET_PATH}\\part014"]
+    source_dirs = [f"{DATASET_PATH}/part000",
+                   f"{DATASET_PATH}/part001",
+                   f"{DATASET_PATH}/part002",
+                   f"{DATASET_PATH}/part003",
+                   f"{DATASET_PATH}/part004",
+                   f"{DATASET_PATH}/part006",
+                   f"{DATASET_PATH}/part007",
+                   f"{DATASET_PATH}/part008",
+                   f"{DATASET_PATH}/part009",
+                   f"{DATASET_PATH}/part010",
+                   f"{DATASET_PATH}/part011",
+                   f"{DATASET_PATH}/part012",
+                   f"{DATASET_PATH}/part013",
+                   f"{DATASET_PATH}/part014"]
 
-    dest_dir = f"{DATASET_PATH}\\compactedDataSet"  # Dossier de destination
+    dest_dir = f"{DATASET_PATH}/compactedDataSet"  # Dossier de destination
 
     # Intervalle d'images à copier
     start = 1  # Premier numéro inclus
