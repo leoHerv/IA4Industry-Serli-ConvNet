@@ -100,8 +100,10 @@ class Img2Vec:
 
     def set_device(self):
         if torch.cuda.is_available():
+            print("cuda")
             device = "cuda:0"
         else:
+            print("cpu")
             device = "cpu"
 
         return device
@@ -169,6 +171,7 @@ class Img2Vec:
         self.files = self.validate_source(source)
 
         for file in self.files:
+            print(file)
             vector = self.embed_image(file)
             self.dataset[str(file)] = vector
 
