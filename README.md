@@ -37,6 +37,7 @@ Files:
 - main_similarity.py: the main file to launch the search for images similar to a given image
 - compression.py and CompressRes.py: for image compression
 - /dataset: for dataset creation
+- kartModel.py: Mazen experimentation
 
 
 
