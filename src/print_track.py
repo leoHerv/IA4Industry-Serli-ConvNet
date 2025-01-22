@@ -16,6 +16,18 @@ def pos_to_xy(bounds, lat, lon, limits, tile_size=512):
 
     return x, y
 
+def load_coordinates_from_json(file_path):
+    """
+    Load coordinates from a JSON file.
+
+    :param file_path: Path to the JSON file containing the coordinates.
+    :return: List of tuples (lat, lon).
+    """
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+        coordinates = [(entry["lat"], entry["lon"]) for entry in data]
+    print(f"Loaded {len(coordinates)} coordinates from {file_path}")
+    return coordinates
 
 def load_coordinates(dataset_path):
     """
@@ -240,9 +252,17 @@ def draw_positions_progressive(circuit_name, coordinates):
         pygame.quit()
 
 
+
+
 # Load coordinates from the dataset
-dataset_path = "C:/M2S1/workshop/ai4industry/dataset/"  # Path to the dataset folder
-coordinates = load_coordinates(dataset_path)
+# dataset_path = "C:/M2S1/workshop/ai4industry/dataset/"  # Path to the dataset folder
+# coordinates = load_coordinates(dataset_path)
+
+# Load coordinates from the saved JSON file
+coordinates_file = "../data/coordinates.json"  # Path to the saved JSON file
+coordinates = load_coordinates_from_json(coordinates_file)
+
+
 
 # Call the function to draw positions
 draw_positions_progressive("Ancenis", coordinates)
