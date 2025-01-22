@@ -16,7 +16,13 @@ def pos_to_xy(bounds, lat, lon, limits, tile_size=512):
 
     return x, y
 
-def draw_position(circuit_name, lat, lon):
+def draw_positions(circuit_name, coordinates):
+    """
+    Draw a positions list on the circuit
+
+    :param circuit_name: name of the circuit (had to be a image name, without extension)
+    :param coordinates: (latitude, longitude) list
+    """
     # Load limits and circuit datas json file
     with open('../data/theworld.json', 'r') as file:
         circuit_data = json.load(file)
@@ -35,7 +41,7 @@ def draw_position(circuit_name, lat, lon):
     image_width, image_height = image.size
     bounds = (0, 0, image_width, image_height)
 
-    pos_x, pos_y = pos_to_xy(bounds, lat, lon, limits)
+    positions = [pos_to_xy(bounds, lat, lon, limits) for lat, lon in coordinates]
 
     # Load satellite image
     satellite_img = cv2.imread(image_path)
@@ -44,7 +50,9 @@ def draw_position(circuit_name, lat, lon):
     # Plot current position
     plt.figure(figsize=(12, 12))
     plt.imshow(satellite_img)
-    plt.plot(pos_x, pos_y, 'ro')
+
+    for i, (pos_x, pos_y) in enumerate(positions):
+        plt.plot(pos_x, pos_y, 'ro', label="Position" if i == 0 else "")
 
     # Plot start position
     # start_point = pos_to_xy(
@@ -56,9 +64,11 @@ def draw_position(circuit_name, lat, lon):
     # plt.plot(start_point[0], start_point[1], 'go', markersize=10, label="Départ")
 
     # Configurer l'affichage
-    plt.title(f"Position du kart sur le circuit '{circuit_name}'")
+    plt.title(f"Positions du kart sur le circuit '{circuit_name}'")
     plt.axis('off')
     plt.legend()
     plt.show()
 
-draw_position("Ancenis", 47.3962329, -1.1846790)
+# draw_positions("Ancenis", [(47.3966379, -1.1855914), (47.3962329, -1.1846790), (47.3958000, -1.1850000)])
+draw_positions("Ancenis", [(47.3966379,-1.1855914), (47.396615599155425, -1.1856136512756348),
+(47.39594558181818,-1.184726481818182), (47.3959391708374, -1.184706474304199)])
