@@ -1,103 +1,114 @@
 import torch
+from torch.utils.data import DataLoader, random_split
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision.models as models
 import torch.optim as optim
 
-class KartPositioningModel(nn.Module):
-    def __init__(self, embedding_dim=128):
-        super(KartPositioningModel, self).__init__()
-        # Utiliser ResNet-18 comme backbone
-        resnet = models.resnet18(pretrained=True)
-        self.feature_extractor = nn.Sequential(*list(resnet.children())[:-1])  # Extraire les caractéristiques sans la dernière couche
-        self.fc_embed = nn.Linear(resnet.fc.in_features, embedding_dim)  # Couche d'embedding
-        self.fc_coord = nn.Sequential(  # Prédiction des coordonnées
-            nn.Linear(embedding_dim, 1024),
+from dataset.dataset import MyDataset
+
+BATCH_SIZE = 32
+
+dataset = MyDataset(csv_file='csv', root_dir='./compactedDataSet')
+
+total_size = len(dataset)
+train_size = int(0.70 * total_size)
+val_size   = int(0.15 * total_size)
+test_size  = total_size - train_size - val_size
+
+train_dataset, val_dataset, test_dataset = random_split(
+    dataset,
+    [train_size, val_size, test_size]
+)
+
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+val_loader   = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
+test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+
+class KartResNet50(nn.Module):
+    def __init__(self, pretrained=True):
+        super(KartResNet50, self).__init__()
+
+        self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
+
+        # remove top
+        self.backbone.fc = nn.Identity()
+
+        # freeze
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+
+        self.fc = nn.Sequential(
+            nn.Linear(2048, 256),
             nn.ReLU(),
-            nn.Linear(1024, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 2)  # Sortie : longitude et latitude
+            nn.Dropout(0.5),
+            nn.Linear(256, 2)
         )
 
     def forward(self, x):
-        # Extraire les caractéristiques
-        features = self.feature_extractor(x)
-        features = features.view(features.size(0), -1)  # Applatir les dimensions
-        embedding = F.normalize(self.fc_embed(features), p=2, dim=1)  # Normalisation L2
-        coords = self.fc_coord(embedding)  # Prédire les coordonnées
-        return embedding, coords
+        features = self.backbone(x)
+        out = self.fc(features)
+        return out
 
 
-class TripletLoss(nn.Module):
-    def __init__(self, margin=1.0):
-        super(TripletLoss, self).__init__()
-        self.margin = margin
+model = KartResNet50(pretrained=True)
 
-    def forward(self, anchor, positive, negative):
-        # Distance entre paires positives et négatives
-        pos_dist = F.pairwise_distance(anchor, positive, p=2)
-        neg_dist = F.pairwise_distance(anchor, negative, p=2)
-        # Calcul de la triplet loss
-        loss = F.relu(pos_dist - neg_dist + self.margin)
-        return loss.mean()
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
+
+criterion = nn.MSELoss() # TODO: correct loss function
+optimizer = optim.Adam(model.fc.parameters(), lr=1e-3)
 
 
-def train_model(model, dataloader, optimizer, triplet_criterion, coord_criterion, num_epochs=10, device='cuda'):
-    model.to(device)
-    for epoch in range(num_epochs):
-        model.train()
-        total_loss = 0.0
+num_epochs = 10
 
-        for batch in dataloader:
-            # Chargement des données
-            anchor, positive, negative, target_coords = batch
-            anchor = anchor.to(device)
-            positive = positive.to(device)
-            negative = negative.to(device)
-            target_coords = target_coords.to(device)
+for epoch in range(num_epochs):
+    model.train()
+    running_train_loss = 0.0
+    for images, labels in train_loader:
+        images = images.to(device)
+        labels = labels.to(device)
 
-            optimizer.zero_grad()
+        outputs = model(images)
+        loss = criterion(outputs, labels)
 
-            # Passer les données dans le modèle
-            anchor_embed, pred_coords = model(anchor)
-            positive_embed, _ = model(positive)
-            negative_embed, _ = model(negative)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
-            # Calcul des pertes
-            triplet_loss = triplet_criterion(anchor_embed, positive_embed, negative_embed)
-            coord_loss = coord_criterion(pred_coords, target_coords)
+        running_train_loss += loss.item() * images.size(0)
 
-            # Combiner les pertes
-            loss = triplet_loss + coord_loss
-            loss.backward()
-            optimizer.step()
+    epoch_train_loss = running_train_loss / len(train_loader.dataset)
 
-            total_loss += loss.item()
+    model.eval()
+    running_val_loss = 0.0
+    with torch.no_grad():
+        for images, labels in val_loader:
+            images = images.to(device)
+            labels = labels.to(device)
 
-        print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {total_loss / len(dataloader):.4f}")
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            running_val_loss += loss.item() * images.size(0)
+
+    epoch_val_loss = running_val_loss / len(val_loader.dataset)
+
+    print(f'Epoch [{epoch+1}/{num_epochs}] '
+          f'Train Loss: {epoch_train_loss:.4f} | '
+          f'Val Loss: {epoch_val_loss:.4f}')
 
 
-if __name__ == "__main__":
-    # Hyperparamètres
-    embedding_dim = 128
-    learning_rate = 1e-4
-    margin = 1.0
-    num_epochs = 10
+model.eval()
+running_test_loss = 0.0
+with torch.no_grad():
+    for images, labels in test_loader:
+        images = images.to(device)
+        labels = labels.to(device)
 
-    # Création du modèle, de la loss et de l'optimiseur
-    model = KartPositioningModel(embedding_dim=embedding_dim)
-    triplet_criterion = TripletLoss(margin=margin)
-    coord_criterion = nn.MSELoss()  # Perte pour les coordonnées
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        outputs = model(images)
+        loss = criterion(outputs, labels)
+        running_test_loss += loss.item() * images.size(0)
 
-    # Exemple de DataLoader (à remplacer par un vrai DataLoader)
-    # DataLoader doit retourner (anchor, positive, negative, target_coords)
-    # Exemple fictif :
-    # dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+epoch_test_loss = running_test_loss / len(test_loader.dataset)
 
-    dataloader = ...  # Définissez votre DataLoader ici
-
-    # Entraînement du modèle
-    train_model(model, dataloader, optimizer, triplet_criterion, coord_criterion, num_epochs=num_epochs)
+print(f'Test Loss: {epoch_test_loss:.4f}')
