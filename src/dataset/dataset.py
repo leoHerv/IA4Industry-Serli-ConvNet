@@ -14,8 +14,8 @@ class MyDataset(Dataset):
             reader = csv.DictReader(f)
             for row in reader:
                 file_name = row['file_name']
-                lat = float(row['lat'])
-                lon = float(row['lon'])
+                lat = (float(row['lat']) - 47.39) * 1000.0
+                lon = (float(row['lon']) + 1.18) * 1000.0
                 self.samples.append((file_name, lat, lon))
 
     def __len__(self):
