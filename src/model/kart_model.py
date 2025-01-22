@@ -4,6 +4,7 @@ import torch.nn as nn
 import torchvision.models as models
 import torch.optim as optim
 import torchvision.transforms as T
+import copy
 
 
 from src.dataset.dataset import MyDataset
@@ -11,7 +12,7 @@ from src.dataset.dataset import MyDataset
 BATCH_SIZE = 32
 
 transform = T.Compose([
-    T.Resize((224, 224)),  # typical input size for ResNet
+    T.Resize((380, 380)),  # typical input size for ResNet
     T.ToTensor(),
 ])
 
@@ -31,30 +32,22 @@ train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-def threshold_accuracy(outputs, labels, threshold=0.1):
-    distances = torch.norm(outputs - labels, dim=1)  # shape: [batch_size]
-
-    # Count how many are below threshold
-    correct = (distances < threshold).float().sum()
-
-    # Return average over the batch
-    return correct / outputs.size(0)
-
 class KartResNet50(nn.Module):
     def __init__(self, pretrained=True):
         super(KartResNet50, self).__init__()
 
-        self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
+        # self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
+        self.backbone = models.efficientnet_b4(weights=models.EfficientNet_B4_Weights.DEFAULT)
 
         # remove top
-        self.backbone.fc = nn.Identity()
+        self.backbone.classifier = nn.Identity()
 
         # freeze
         for param in self.backbone.parameters():
             param.requires_grad = False
 
-        self.fc = nn.Sequential(
-            nn.Linear(2048, 1024),
+        self.classifier = nn.Sequential(
+            nn.Linear(1792, 1024),
             nn.ReLU(),
             nn.Linear(1024, 128),
             nn.ReLU(),
@@ -66,7 +59,7 @@ class KartResNet50(nn.Module):
 
     def forward(self, x):
         features = self.backbone(x)
-        out = self.fc(features)
+        out = self.classifier(features)
         return out
 
 
@@ -76,16 +69,23 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
 
 criterion = nn.MSELoss() # TODO: correct loss function
-optimizer = optim.Adam(model.fc.parameters(), lr=1e-3)
+optimizer = optim.Adam(model.classifier.parameters(), lr=1e-3)
 
 
-num_epochs = 20
+num_epochs = 50
+patience = 5
+
+best_val_loss = float('inf')
+epochs_no_improve = 0
+
+best_model_weights = copy.deepcopy(model.state_dict())
+
+best_model_path = "best_model.pth"
 
 for epoch in range(num_epochs):
     model.train()
     running_train_loss = 0.0
     correct_train = 0
-    running_acc = 0
     running_train_mae = 0.0
 
     for images, labels in train_loader:
@@ -101,21 +101,16 @@ for epoch in range(num_epochs):
 
         running_train_loss += loss.item() * images.size(0)
 
-        acc = threshold_accuracy(outputs, labels, threshold=0.1)
-        running_acc += acc.item() * images.size(0)
 
         batch_mae = torch.mean(torch.abs(outputs - labels), dim=1)
         running_train_mae += batch_mae.sum().item()
 
     epoch_train_loss = running_train_loss / len(train_loader.dataset)
-    epoch_acc = running_acc / len(train_loader.dataset)
     epoch_train_mae = running_train_mae / len(train_loader.dataset)
-
 
 
     model.eval()
     running_val_loss = 0.0
-    running_val_acc = 0
     running_val_mae = 0.0
     with torch.no_grad():
         for images, labels in val_loader:
@@ -126,14 +121,11 @@ for epoch in range(num_epochs):
             loss = criterion(outputs, labels)
             running_val_loss += loss.item() * images.size(0)
 
-            acc = threshold_accuracy(outputs, labels, threshold=0.1)
-            running_val_acc += acc.item() * images.size(0)
 
             batch_mae = torch.mean(torch.abs(outputs - labels), dim=1)
             running_val_mae += batch_mae.sum().item()
 
     epoch_val_loss = running_val_loss / len(val_loader.dataset)
-    epoch_val_acc = running_val_acc / len(val_loader.dataset)
     epoch_val_mae = running_val_mae / len(val_loader.dataset)
 
 
@@ -141,9 +133,26 @@ for epoch in range(num_epochs):
     print(f'Epoch [{epoch+1}/{num_epochs}] '
           f'Train Loss: {epoch_train_loss:.4f} | Train MAE: {epoch_train_mae:.4f} '
           f'Val Loss: {epoch_val_loss:.4f} | Val MAE: {epoch_val_mae:.4f}')
+    
+    if epoch_val_loss < best_val_loss:
+        best_val_loss = epoch_val_loss
+        epochs_no_improve = 0
+        
+        best_model_weights = copy.deepcopy(model.state_dict())
+
+        torch.save(model.state_dict(), best_model_path)
+        print(f"  --> New best model saved at epoch {epoch+1} with val_loss = {best_val_loss:.4f}")
+    else:
+        epochs_no_improve += 1
+
+    if epochs_no_improve >= patience:
+        print(f"Early stopping triggered after {epoch+1} epochs!")
+        break
 
 
-dummy_input = torch.randn(1, 3, 224, 224, device=device)
+model.load_state_dict(best_model_weights)
+
+dummy_input = torch.randn(1, 3, 380, 380, device=device)
 
 onnx_model_path = "kart_resnet50.onnx"
 
@@ -166,7 +175,6 @@ print(f"Model has been exported to {onnx_model_path}")
 
 model.eval()
 running_test_loss = 0.0
-acc_test = 0
 running_test_mae = 0.0
 with torch.no_grad():
     for images, labels in test_loader:
@@ -177,14 +185,11 @@ with torch.no_grad():
         loss = criterion(outputs, labels)
         running_test_loss += loss.item() * images.size(0)
 
-        acc = threshold_accuracy(outputs, labels, threshold=0.1)
-        running_val_acc += acc.item() * images.size(0)
 
         batch_mae = torch.mean(torch.abs(outputs - labels), dim=1)
         running_test_mae += batch_mae.sum().item()
 
 epoch_test_loss = running_test_loss / len(test_loader.dataset)
-acc_test = running_val_acc / len(test_loader.dataset)
 epoch_test_mae = running_test_mae / len(test_loader.dataset)
 
 

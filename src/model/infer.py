@@ -6,7 +6,7 @@ import torchvision.transforms as T
 
 def get_transform():
     transform = T.Compose([
-        T.Resize((224, 224)),
+        T.Resize((380, 380)),
         T.ToTensor()
     ])
     return transform
@@ -24,7 +24,7 @@ def run_inference(onnx_model_path, image_tensor):
     output_name = session.get_outputs()[0].name
 
     input_data = image_tensor.numpy()
-    
+
     outputs = session.run([output_name], {input_name: input_data})
     return outputs[0]
 
@@ -42,7 +42,7 @@ def main():
     prediction = run_inference(args.model, image_tensor)
 
 
-    lat = prediction[0][0] /1000.0 + 47.3
+    lat = prediction[0][0] /1000.0 + 47.39
     lon = prediction[0][1] /1000.0 - 1.18
 
     print("Predicted coordinates:", lat, lon)  # [x, y] for example
