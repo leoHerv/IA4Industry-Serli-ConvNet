@@ -1,6 +1,7 @@
 import json
 import cv2
 import matplotlib.pyplot as plt
+from PIL import Image
 
 
 def pos_to_xy(bounds, lat, lon, limits, tile_size=512):
@@ -15,61 +16,49 @@ def pos_to_xy(bounds, lat, lon, limits, tile_size=512):
 
     return x, y
 
+def draw_position(circuit_name, lat, lon):
+    # Load limits and circuit datas json file
+    with open('../data/theworld.json', 'r') as file:
+        circuit_data = json.load(file)
 
-# Charger le fichier JSON contenant les limites et les données des circuits
-with open('../data/theworld.json', 'r') as file:
-    circuit_data = json.load(file)
+    selected_circuit = next(track for track in circuit_data["tracks"] if track["name"] == circuit_name)
 
-# Sélectionner le circuit "Ancenis"
-circuit_name = "Ancenis"
-selected_circuit = next(track for track in circuit_data["tracks"] if track["name"] == circuit_name)
+    # Get real gps coordinates that represents circuit limits
+    limits = {
+        "p1": {"latitude": selected_circuit["limits"]["p1"]["lat"], "longitude": selected_circuit["limits"]["p1"]["lon"]},
+        "p2": {"latitude": selected_circuit["limits"]["p2"]["lat"], "longitude": selected_circuit["limits"]["p2"]["lon"]}
+    }
 
-# Récupérer les limites géographiques
-limits = {
-    "p1": {"latitude": selected_circuit["limits"]["p1"]["lat"], "longitude": selected_circuit["limits"]["p1"]["lon"]},
-    "p2": {"latitude": selected_circuit["limits"]["p2"]["lat"], "longitude": selected_circuit["limits"]["p2"]["lon"]}
-}
+    image_path = "../data/" + circuit_name + ".png"
+    image = Image.open(image_path)
 
-# Dimensions de l'image satellite
-image_width, image_height = 2393, 2801
-bounds = (0, 0, image_width, image_height)
+    image_width, image_height = image.size
+    bounds = (0, 0, image_width, image_height)
 
-# Exemple de données des frames (en JSON ou fichier)
-frame_data = [
-    {"lat": 47.3966379, "lon": -1.1855914, "alt": 67.966, "spd": 0.022, "accuracy": 185},
-    {"lat": 47.3962329, "lon": -1.1846790, "alt": 67.950, "spd": 0.025, "accuracy": 180},
-    {"lat": 47.3958000, "lon": -1.1850000, "alt": 67.930, "spd": 0.030, "accuracy": 150}
-]
+    pos_x, pos_y = pos_to_xy(bounds, lat, lon, limits)
 
-# Convertir les positions GPS en coordonnées pixels
-pixel_positions = [
-    pos_to_xy(bounds, frame["lat"], frame["lon"], limits) for frame in frame_data if frame["accuracy"] <= 200
-]
+    # Load satellite image
+    satellite_img = cv2.imread(image_path)
+    satellite_img = cv2.cvtColor(satellite_img, cv2.COLOR_BGR2RGB)
 
-# Charger l'image satellite
-satellite_img = cv2.imread('../data/Ancenis.png')
-satellite_img = cv2.cvtColor(satellite_img, cv2.COLOR_BGR2RGB)
+    # Plot current position
+    plt.figure(figsize=(12, 12))
+    plt.imshow(satellite_img)
+    plt.plot(pos_x, pos_y, 'ro')
 
-# Traçage de la trajectoire
-plt.figure(figsize=(12, 12))
-plt.imshow(satellite_img)
+    # Plot start position
+    # start_point = pos_to_xy(
+    #     bounds,
+    #     selected_circuit["start"]["p1"]["lat"],
+    #     selected_circuit["start"]["p1"]["lon"],
+    #     limits
+    # )
+    # plt.plot(start_point[0], start_point[1], 'go', markersize=10, label="Départ")
 
-# Dessiner les points et la trajectoire
-for point in pixel_positions:
-    plt.plot(point[0], point[1], 'ro')  # Points rouges
-#plt.plot(*zip(*pixel_positions), 'b-', linewidth=2, label="Trajectoire")  # Ligne bleue
+    # Configurer l'affichage
+    plt.title(f"Position du kart sur le circuit '{circuit_name}'")
+    plt.axis('off')
+    plt.legend()
+    plt.show()
 
-# Ajouter le point de départ
-start_point = pos_to_xy(
-    bounds,
-    selected_circuit["start"]["p1"]["lat"],
-    selected_circuit["start"]["p1"]["lon"],
-    limits
-)
-plt.plot(start_point[0], start_point[1], 'go', markersize=10, label="Départ")  # Point vert
-
-# Configurer l'affichage
-plt.title(f"Trajectoire du kart sur le circuit '{circuit_name}'")
-plt.axis('off')
-plt.legend()
-plt.show()
+draw_position("Ancenis", 47.3962329, -1.1846790)
