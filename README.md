@@ -18,28 +18,28 @@ COMPACTED_DATASET_PATH= the path to the data set to see similarities
 TARGET_PATH= the path of the image to search similarities   
 ```
 
-Run the `main_similarity.py`
+Run `kart_model.py` to create the model
+Run `infer.py` to use the model 
 
 ## What we have done
 
-- Creation of a lighter dataset for model training
-- Beginning of the creation of a visualization to display GPS points on the map (study of the existing)
-- Definition of our model's architecture
-- Research on the loss function that can be used for training our model (triplet loss, metric loss)
+L'approche que nous avons est d'utiliser un modèle qui permet de transformer nos images en vecteurs descripteurs.
+Avec ces vecteurs descripteurs, nous pouvons calculer la distance entre les images, ce qui nous permet de trouver l'image la plus proche et donc de déterminer notre point GPS en fonction de cette image dont nous connaissons la position.
 
+La première approche était de calculer tous les vecteurs descripteurs de toutes nos images, puis de les comparer à une nouvelle image pour trouver la plus proche et donc la position la plus proche. Mais le problème avec cette méthode était que les vecteurs descripteurs étaient trop grands et prenaient trop de mémoire (130 vecteurs max avec 16 Go de RAM).
 
-For now, we have a prototype that works but uses a lot of RAM, which prevents us from loading many images, and as a result, 
-the output is not very accurate.  
+Nous avons donc décidé d'utiliser un modèle capable de prédire une position sur la piste en fonction d'un vecteur descripteur.
+L'idée derrière cela est de faire apprendre au modèle la similarité entre les vecteurs et leurs positions sur la piste.
+Cette approche nous permet de compresser les données tout en calculant la position en fonction de nos données et non en fonction de la seule position d'une image que nous connaissons.
+
+Pour créer ces vecteurs, nous utilisons un modèle pré-entraîné CNN qui est EfficientNet B4 (de Google, voir les performances :
+https://github.com/lukemelas/EfficientNet-PyTorch).
+
 
 Files:
-- datasetcreate.py: creates a small dataset of images for testing
-- image_similarity.py: allows the use of a convolutional model to find the similarity between an image and a set of images
-- main_similarity.py: the main file to launch the search for images similar to a given image
-- compression.py and CompressRes.py: for image compression
 - /dataset: for dataset creation
-- kartModel.py: Mazen experimentation
-
-
+- /model: for the creation and use of the model
+- rest of the files old tests
 
 # Credits
 
@@ -49,3 +49,4 @@ Repo here : https://github.com/totogot/ImageSimilarity
 For the triplet loss : 
 https://github.com/KevinMusgrave/pytorch-metric-learning/blob/master/examples/README.md
 
+To extract images from a .mp4 : https://github.com/Serli/gokart
