@@ -297,25 +297,23 @@ def draw_positions_progressive(circuit_name, coordinates):
             if started and current_index < len(positions):
                 for i in range(current_index, min(current_index + speed, len(positions))):
                     (px, py) = positions[i]
-
-                    # Calcul de la distance au point de départ
                     dist_to_start = distance((px, py), start_position)
 
-                    # Système d'hystérésis :
-                    # Si on n'était pas dans la zone, on teste si dist < 30 => Nouveau tour
+                    print(
+                        f"[DEBUG] i={i}, dist={dist_to_start:.2f}, in_start_zone={in_start_zone}, current_lap={current_lap_index}")
+
                     if not in_start_zone:
-                        if dist_to_start < 30 and i > 1:
+                        if dist_to_start < 50 and i > 1:
                             current_lap_index += 1
                             laps_positions.append([])
                             current_color = lap_colors[current_lap_index % len(lap_colors)]
                             in_start_zone = True
+                            print(f"[DEBUG] >>> NEW LAP DETECTED: {current_lap_index}")
                     else:
-                        # On est dans la zone, on attend d'en sortir
-                        # => dist > 50 => in_start_zone = False
-                        if dist_to_start > 50:
+                        if dist_to_start > 60:
                             in_start_zone = False
+                            print("[DEBUG] >>> EXIT start zone")
 
-                    # On ajoute le point au tour courant
                     laps_positions[current_lap_index].append((px, py))
 
                 current_index += speed
@@ -371,8 +369,7 @@ def draw_positions_progressive(circuit_name, coordinates):
                 color = lap_colors[lap_index % len(lap_colors)]
 
                 # Dessin des points
-                for i in range(len(lap_points)):
-                    px, py = lap_points[i]
+                for i, (px, py) in enumerate(lap_points):
                     adjx = int(px * zoom_factor + offset_x)
                     adjy = int(py * zoom_factor + offset_y)
 
