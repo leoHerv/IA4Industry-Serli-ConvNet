@@ -16,7 +16,7 @@ tracker.start()
 BATCH_SIZE = 32
 
 transform = T.Compose([
-    T.Resize((600, 600)),
+    T.Resize((380, 380)),
     T.ToTensor(),
 ])
 
@@ -37,12 +37,12 @@ train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 val_loader   = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
 # test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-class KartResNet50(nn.Module):
+class KartEfficientB4(nn.Module):
     def __init__(self, pretrained=True):
-        super(KartResNet50, self).__init__()
+        super(KartEfficientB4, self).__init__()
 
         # self.backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT if pretrained else None)
-        self.backbone = models.efficientnet_b7(weights=models.EfficientNet_B7_Weights.DEFAULT)
+        self.backbone = models.efficientnet_b4(weights=models.EfficientNet_B4_Weights.DEFAULT)
 
         # remove top
         self.backbone.classifier = nn.Identity()
@@ -52,7 +52,7 @@ class KartResNet50(nn.Module):
             param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Linear(2560, 1024),
+            nn.Linear(1792, 1024),
             nn.ReLU(),
             nn.Linear(1024, 128),
             nn.ReLU(),
@@ -68,7 +68,7 @@ class KartResNet50(nn.Module):
         return out
 
 
-model = KartResNet50(pretrained=True)
+model = KartEfficientB4(pretrained=True)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
@@ -159,9 +159,9 @@ tracker.stop()
 
 model.load_state_dict(best_model_weights)
 
-dummy_input = torch.randn(1, 3, 600, 600, device=device)
+dummy_input = torch.randn(1, 3, 380, 380, device=device)
 
-onnx_model_path = "kart_resnet50.onnx"
+onnx_model_path = "kart_efficientb4.onnx"
 
 torch.onnx.export(
     model,                      # Model to be exported
