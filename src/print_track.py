@@ -3,6 +3,54 @@ import json
 import os
 import math
 
+import json
+import os
+
+
+def load_coordinates(dataset_path, output_file):
+    """
+    Load coordinates from JSON files in the dataset folder and save them to a JSON file.
+
+    :param dataset_path: Path to the dataset folder containing partXXX folders.
+    :param output_file: Path to the output JSON file where coordinates will be saved.
+    :return: List of tuples (lat, lon).
+    """
+    coordinates = []
+    part_folders = sorted(os.listdir(dataset_path))
+    total_parts = len(part_folders)
+
+    for part_idx, part_folder in enumerate(part_folders):
+        part_path = os.path.join(dataset_path, part_folder)
+        if os.path.isdir(part_path):
+            frame_files = sorted(os.listdir(part_path))
+            total_frames = len(frame_files)
+
+            for frame_idx, frame_file in enumerate(frame_files):
+                frame_path = os.path.join(part_path, frame_file)
+                if frame_path.endswith('.json'):
+                    with open(frame_path, 'r') as file:
+                        frame_data = json.load(file)
+                        coordinates.append({"lat": frame_data["lat"], "lon": frame_data["lon"]})
+
+                # Print progress
+                print(
+                    f"Loading {part_folder}: Frame {frame_idx + 1}/{total_frames} "
+                    f"({part_idx + 1}/{total_parts} parts complete)"
+                )
+
+    # Save coordinates to a JSON file
+    with open(output_file, 'w') as outfile:
+        json.dump(coordinates, outfile, indent=4)
+        print(f"Coordinates saved to {output_file}")
+
+    return coordinates
+
+
+# Example usage
+# dataset_path = "C:/M2S1/workshop/ai4industry/dataset/"  # Path to the dataset folder
+# output_file = "coordinates.json"  # Path to the output file
+# coordinates = load_coordinates(dataset_path, output_file)
+
 
 def pos_to_xy(bounds, lat, lon, limits, tile_size=512):
     """
