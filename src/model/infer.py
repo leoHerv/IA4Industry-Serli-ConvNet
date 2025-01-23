@@ -1,9 +1,10 @@
 import argparse
 import onnxruntime as ort
 from PIL import Image
-import torch
 import torchvision.transforms as T
-from chrono import Chrono
+
+from src.utils.chrono import Chrono
+from src.utils.utils import validate_source
 
 def get_transform():
     transform = T.Compose([
@@ -35,24 +36,55 @@ def main():
                         help='Path to the ONNX model file.')
     parser.add_argument('--image', type=str, required=True,
                         help='Path to the input image.')
+    parser.add_argument('--folder', type=str, required=False,
+                        help='Path to the folder of images.')
     args = parser.parse_args()
 
-    transform = get_transform()
-    image_tensor = load_image(args.image, transform)
+    if args.folder is None:
+        transform = get_transform()
+        image_tensor = load_image(args.image, transform)
 
-    chrono = Chrono()
-    chrono.start()
+        chrono = Chrono()
+        chrono.start()
 
-    prediction = run_inference(args.model, image_tensor)
+        prediction = run_inference(args.model, image_tensor)
 
-    time_inference = chrono.stop()
+        time_inference = chrono.stop()
 
-    print(f"Time inference : {time_inference:.5f} seconds")
+        print(f"Time inference : {time_inference:.5f} seconds")
 
-    lat = prediction[0][0] /1000.0 + 47.39
-    lon = prediction[0][1] /1000.0 - 1.18
+        lat = prediction[0][0] /1000.0 + 47.39
+        lon = prediction[0][1] /1000.0 - 1.18
 
-    print("Predicted coordinates:", lat, lon)  # [x, y] for example
+        print("Predicted coordinates:", lat, lon)  # [x, y] for example
+
+    else:
+        time_moy = 0
+        files = validate_source(args.folder)
+        for file in files:
+
+            transform = get_transform()
+            image_tensor = load_image(file, transform)
+
+            chrono = Chrono()
+            chrono.start()
+
+            prediction = run_inference(args.model, image_tensor)
+
+            time_inference = chrono.stop()
+
+            time_moy += time_inference
+
+
+            lat = prediction[0][0] / 1000.0 + 47.39
+            lon = prediction[0][1] / 1000.0 - 1.18
+
+            print(f"({lat:.6f}, {lon:.6f}),")
+
+        time_moy /= len(files)
+
+        print(f"Average Time inference : {time_moy:.5f} seconds")
+
 
 if __name__ == '__main__':
     main()
