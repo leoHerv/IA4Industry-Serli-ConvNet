@@ -1,3 +1,6 @@
+import sys
+import gc
+
 import torch
 import os
 import math
@@ -177,7 +180,21 @@ class Img2Vec:
 
         return
 
-    def similar_images(self, target_file, n=None):
+    def progress_embed_dataset(self, s, e):
+        # convert source to appropriate format
+
+        # already done
+        # self.files = self.validate_source(source)
+        self.dataset = None
+
+        for i in range(s, e+1):
+            file = self.files[i]
+            print(file)
+            vector = self.embed_image(file)
+            self.dataset[str(file)] = vector
+        return
+
+    def similar_images(self, target_file, source = None, n=None):
         """
         Function for comparing target image to embedded image dataset
 
@@ -188,16 +205,23 @@ class Img2Vec:
         n: int specifying the top n most similar images to return
         """
 
+        self.files = self.validate_source(source)
         target_vector = self.embed_image(target_file)
 
         # initiate computation of consine similarity
         cosine = nn.CosineSimilarity(dim=1)
 
+
         # iteratively store similarity of stored images to target image
         sim_dict = {}
-        for k, v in self.dataset.items():
-            sim = cosine(v, target_vector)[0].item()
-            sim_dict[k] = sim
+
+        for i in range(len(self.files)):
+            gc.collect()
+            print(f"i {i}")
+            vector = self.embed_image(self.files[i])
+            sim = cosine(vector, target_vector)[0].item()
+            sim_dict[i] = sim
+
 
         # sort based on decreasing similarity
         items = sim_dict.items()
@@ -215,11 +239,12 @@ class Img2Vec:
         self.display_img(target, "original")
 
         for k, v in similar.items():
-            self.display_img(k, "similarity:" + str(v))
+            self.display_img(self.files[k], "similarity:" + str(v))
 
         return
 
     def display_img(self, path, title):
+        print(path)
         plt.imshow(Image.open(path))
         plt.axis("off")
         plt.title(title)

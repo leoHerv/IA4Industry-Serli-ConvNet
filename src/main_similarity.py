@@ -12,8 +12,8 @@ if __name__ == "__main__":
     TARGET_PATH = os.getenv('TARGET_PATH')
 
     # Path to the data set
-    ImgSim.embed_dataset(COMPACTED_DATASET_PATH)
+    #ImgSim.embed_dataset(COMPACTED_DATASET_PATH)
     ImgSim.dataset
 
     # Path to the image to search similarity
-    ImgSim.similar_images(TARGET_PATH, n=5)
+    ImgSim.similar_images(TARGET_PATH, COMPACTED_DATASET_PATH, n=5)
