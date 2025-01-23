@@ -58,6 +58,17 @@ then run the command `python resize_images.py` to resize the images to 224x224, 
 then run the command `python create_labels.py` to create the labels for the dataset, but before ensure you update the dir_path
 
 
+### HOW to train the model
+ensure the .env file is correctly filled with the paths to the dataset and the compacted dataset
+
+run the command `python -m src.model.kart_modelB4` or `python -m src.model.kart_modelB7`  to train the model.
+
+
+### HOW to evaluate the model
+run the command `python spatial_analysis.py` to see the spatial analysis of the model, the average error in meter of predicted coordinates.
+
+
+
 ## What we have todo 
 
 Maintenant que nous avons le modèle, le but est de le rendre encore meilleur pour améliorer la précision de la position.
