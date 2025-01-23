@@ -61,12 +61,22 @@ then run the command `python create_labels.py` to create the labels for the data
 ### HOW to train the model
 ensure the .env file is correctly filled with the paths to the dataset and the compacted dataset
 
+n the folder next to the kart_model.py you need to have dataset.csv that contains the positions for each images and /resizeDataSet in which the dataset is (all the images)
+
 run the command `python -m src.model.kart_modelB4` or `python -m src.model.kart_modelB7`  to train the model.
 
 
 ### HOW to evaluate the model
 run the command `python spatial_analysis.py` to see the spatial analysis of the model, the average error in meter of predicted coordinates.
 
+
+### To visualize, the print_track.py file
+
+`load_coordinates(dataset_path,output_file)` to retrieve the coordinates of the JSON of a dataset and save them in a general JSON file to reuse it
+`load_coordinates_from_json(file_path)` to retrieve the coordinates of a general JSON file
+`load_coordinates(dataset_path)` to retrieve the coordinates of the JSON of a dataset
+
+`draw_positions_progressive(circuit_name, coordinates)` to launch a pygame that displays a console visualizing the map and the driver's layout from a circuit name and coordinates (previously retrieved via one of the 3 functions above)
 
 
 ## What we have todo 
