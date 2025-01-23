@@ -49,6 +49,15 @@ Files:
 - /model: for the creation and use of the model
 - rest of the files old tests
 
+### How to prepare the dataset
+ensure the .env file is correctly filled with the paths to the dataset and the compacted dataset
+
+
+then run the command `python resize_images.py` to resize the images to 224x224, but before ensure you update the DATASET_PATH
+
+then run the command `python create_labels.py` to create the labels for the dataset, but before ensure you update the dir_path
+
+
 ## What we have todo 
 
 Maintenant que nous avons le modèle, le but est de le rendre encore meilleur pour améliorer la précision de la position.
