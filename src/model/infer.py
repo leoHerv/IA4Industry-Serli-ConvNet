@@ -3,6 +3,7 @@ import onnxruntime as ort
 from PIL import Image
 import torch
 import torchvision.transforms as T
+from chrono import Chrono
 
 def get_transform():
     transform = T.Compose([
@@ -39,8 +40,14 @@ def main():
     transform = get_transform()
     image_tensor = load_image(args.image, transform)
 
+    chrono = Chrono()
+    chrono.start()
+
     prediction = run_inference(args.model, image_tensor)
 
+    time_inference = chrono.stop()
+
+    print(f"Time inference : {time_inference:.5f} seconds")
 
     lat = prediction[0][0] /1000.0 + 47.39
     lon = prediction[0][1] /1000.0 - 1.18
