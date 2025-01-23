@@ -1,4 +1,5 @@
 import argparse
+import torch
 import onnxruntime as ort
 from PIL import Image
 import torchvision.transforms as T
@@ -20,8 +21,12 @@ def load_image(image_path, transform):
     return image_tensor.unsqueeze(0)
 
 def run_inference(onnx_model_path, image_tensor):
+    # providers = [("CUDAExecutionProvider", {"device_id": torch.cuda.current_device(),
+    #                                         "user_compute_stream": str(torch.cuda.current_stream().cuda_stream)})]
+    # sess_options = ort.SessionOptions()
+    # session = ort.InferenceSession(onnx_model_path, sess_options=sess_options, providers=providers)
     session = ort.InferenceSession(onnx_model_path, providers=['CPUExecutionProvider'])
-    
+
     input_name = session.get_inputs()[0].name
     output_name = session.get_outputs()[0].name
 
@@ -61,6 +66,10 @@ def main():
     else:
         time_moy = 0
         files = validate_source(args.folder)
+        # print(files)
+        point = (0, 0)
+        i = 0
+        index_moy = 1
         for file in files:
 
             transform = get_transform()
@@ -79,7 +88,13 @@ def main():
             lat = prediction[0][0] / 1000.0 + 47.39
             lon = prediction[0][1] / 1000.0 - 1.18
 
-            print(f"({lat:.6f}, {lon:.6f}),")
+            i += 1
+            point = (point[0] + lat, point[1] + lon)
+            if i % index_moy == 0:
+                point = (point[0] / index_moy, point[1] / index_moy)
+                print(f"({point[0]:.8f}, {point[1]:.8f}),")
+                point = (0, 0)
+
 
         time_moy /= len(files)
 
