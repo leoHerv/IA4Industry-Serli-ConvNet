@@ -1,11 +1,8 @@
-import argparse
-import os
-import csv
 import numpy as np
 import onnxruntime as ort
 from PIL import Image
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import torchvision.transforms as T
 
 from src.dataset.dataset import MyDataset
